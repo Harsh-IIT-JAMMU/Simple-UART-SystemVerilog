@@ -1,8 +1,8 @@
-# UART Top Module (SystemVerilog)
+# UART - SystemVerilog
 
 ## 📌 Overview
 
-This module integrates both **UART Transmitter (TX)** and **UART Receiver (RX)** into a single top-level design.
+The TOP module integrates both **UART Transmitter (TX)** and **UART Receiver (RX)** into a single top-level design.
 
 It allows:
 
