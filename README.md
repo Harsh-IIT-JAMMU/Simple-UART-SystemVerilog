@@ -1,4 +1,4 @@
-# 📡 UART Verification using SystemVerilog
+# 📡 UART Design & Verification using SystemVerilog
 
 ## 📌 About UART
 UART (Universal Asynchronous Receiver Transmitter) is a serial communication protocol used for data transfer between devices without a shared clock.  
