@@ -1,3 +1,160 @@
+# UART Top Module (SystemVerilog)
+
+## 📌 Overview
+
+This module integrates both **UART Transmitter (TX)** and **UART Receiver (RX)** into a single top-level design.
+
+It allows:
+
+* Sending parallel data through UART TX
+* Receiving serial data through UART RX
+* Sharing common clock and baud rate configuration
+
+---
+
+## ⚙️ Parameters
+
+| Parameter   | Description                  |
+| ----------- | ---------------------------- |
+| `clk_freq`  | Input system clock frequency |
+| `baud_rate` | UART communication baud rate |
+
+These parameters are passed to both TX and RX modules to ensure synchronized operation.
+
+---
+
+## 🔌 Ports
+
+| Signal        | Direction | Description                       |
+| ------------- | --------- | --------------------------------- |
+| `clk`         | Input     | System clock                      |
+| `rst`         | Input     | Reset signal                      |
+| `rx`          | Input     | Serial data input (UART RX line)  |
+| `dintx[7:0]`  | Input     | Parallel data to transmit         |
+| `newd`        | Input     | New data valid for transmission   |
+| `tx`          | Output    | Serial data output (UART TX line) |
+| `doutrx[7:0]` | Output    | Received parallel data            |
+| `donetx`      | Output    | Transmission complete flag        |
+| `donerx`      | Output    | Reception complete flag           |
+
+---
+
+## 🧠 Internal Architecture
+
+The top module instantiates:
+
+* **UART Transmitter (`uarttx`)**
+* **UART Receiver (`uartrx`)**
+
+Both modules operate independently but share:
+
+* Same clock (`clk`)
+* Same reset (`rst`)
+* Same baud configuration
+
+---
+
+## 🔗 Module Instantiation
+
+### UART Transmitter
+
+```sv
+uarttx #(clk_freq, baud_rate) utx (
+  clk,
+  rst,
+  newd,
+  dintx,
+  tx,
+  donetx
+);
+```
+
+---
+
+### UART Receiver
+
+```sv
+uartrx #(clk_freq, baud_rate) rtx (
+  clk,
+  rst,
+  rx,
+  donerx,
+  doutrx
+);
+```
+
+---
+
+## 🔄 Data Flow
+
+```text
+          +-------------+        Serial Line        +-------------+
+dintx --->|   UART TX   |-------------------------->|   UART RX   |---> doutrx
+          +-------------+                           +-------------+
+                |                                         |
+             donetx                                   donerx
+```
+
+---
+
+## ⚙️ Working
+
+### Transmission Path
+
+1. User provides data on `dintx`
+2. Asserts `newd`
+3. UART TX sends serial data on `tx`
+4. `donetx` goes HIGH after completion
+
+---
+
+### Reception Path
+
+1. Serial data arrives on `rx`
+2. UART RX detects start bit
+3. Receives 8-bit data
+4. Outputs parallel data on `doutrx`
+5. `donerx` goes HIGH when done
+
+---
+
+## 📊 Signal Summary
+
+| Path | Input           | Output   | Status Signal |
+| ---- | --------------- | -------- | ------------- |
+| TX   | `dintx`, `newd` | `tx`     | `donetx`      |
+| RX   | `rx`            | `doutrx` | `donerx`      |
+
+---
+
+## 🧩 Integration Notes
+
+* TX and RX are **independent** but can be looped back for testing
+* For loopback testing: connect `tx → rx`
+* Both modules must use same baud rate for correct communication
+
+---
+
+## 🧪 Example Loopback Setup
+
+```text
+tx ------------------> rx
+```
+
+* Transmitted data will be received back internally
+* Useful for simulation and verification
+
+---
+
+## ✅ Key Features
+
+* Combines UART TX and RX in a single module
+* Parameterized design (clock + baud rate)
+* Clean modular architecture
+* Supports full UART communication path
+* Easy integration into larger systems
+
+
 ## UART Transmitter (SystemVerilog)
 
 ## 📌 Overview
