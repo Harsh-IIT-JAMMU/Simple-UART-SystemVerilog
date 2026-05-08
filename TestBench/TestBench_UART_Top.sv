@@ -1,3 +1,5 @@
+`include "interface.sv"
+
 import tb_pkg::*;
 
 module tb;
