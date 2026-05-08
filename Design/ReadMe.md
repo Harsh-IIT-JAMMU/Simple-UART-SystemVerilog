@@ -1,8 +1,8 @@
-# UART Transmitter (SystemVerilog)
+## UART Transmitter (SystemVerilog)
 
 ## 📌 Overview
 
-This project implements a **UART (Universal Asynchronous Receiver/Transmitter) Transmitter** in SystemVerilog.
+UART_Tx.sv implements a **UART (Universal Asynchronous Receiver/Transmitter) Transmitter** in SystemVerilog.
 
 The module converts **8-bit parallel data** into a **serial bitstream** following UART protocol:
 
@@ -169,3 +169,168 @@ TX Line:
 * LSB-first transmission
 * Built-in clock divider
 * Transmission complete flag (`donetx`)
+
+
+## UART Receiver (SystemVerilog)
+
+## 📌 Overview
+
+UART_Rx.sv implements a **UART (Universal Asynchronous Receiver/Transmitter) Receiver** in SystemVerilog.
+
+The module converts **serial UART data** into **8-bit parallel data**. It detects the start bit, samples incoming bits, and reconstructs the byte.
+
+---
+
+## ⚙️ Parameters
+
+| Parameter   | Description                  |
+| ----------- | ---------------------------- |
+| `clk_freq`  | Input system clock frequency |
+| `baud_rate` | Desired UART baud rate       |
+
+### Baud Clock Calculation
+
+```text
+clkcount = clk_freq / baud_rate
+```
+
+---
+
+## 🔌 Ports
+
+| Signal        | Direction | Description                  |
+| ------------- | --------- | ---------------------------- |
+| `clk`         | Input     | System clock                 |
+| `rst`         | Input     | Reset signal                 |
+| `rx`          | Input     | Serial input line            |
+| `done`        | Output    | Data reception complete flag |
+| `rxdata[7:0]` | Output    | Received parallel data       |
+
+---
+
+## 🧠 Internal Blocks
+
+### 1. UART Clock Generator
+
+* Generates a slower sampling clock (`uclk`)
+* Used to sample incoming serial data
+
+```sv
+if(count < clkcount/2)
+    count <= count + 1;
+else begin
+    count <= 0;
+    uclk <= ~uclk;
+end
+```
+
+---
+
+### 2. Data Register
+
+```sv
+reg [7:0] rxdata;
+```
+
+Stores received data using shift operation.
+
+---
+
+### 3. Counters
+
+* `count` → baud clock generation
+* `counts` → number of bits received
+
+---
+
+## 🔄 Finite State Machine (FSM)
+
+The receiver is controlled by a **2-state FSM**:
+
+### States:
+
+```sv
+idle  = 2'b00
+start = 2'b01
+```
+
+---
+
+### 🟢 State: IDLE
+
+* Waits for **start bit detection**
+* UART line is normally HIGH
+* Start bit is detected when `rx = 0`
+
+```text
+done = 0
+counts = 0
+rxdata = 0
+
+if(rx == 0):
+    → start
+else:
+    stay in idle
+```
+
+---
+
+### 🔵 State: START (Data Reception)
+
+* Begins sampling incoming bits
+* Receives **8 data bits**
+* Uses shift register logic
+
+```text
+for counts = 0 to 7:
+    rxdata = {rx, rxdata[7:1]}
+```
+
+After receiving all bits:
+
+* `done = 1`
+* Returns to `IDLE`
+
+---
+
+### ⚠️ Note
+
+* No explicit stop bit validation is performed
+* No mid-bit sampling → may cause sampling errors in real hardware
+* Start state handles both detection and data reception
+
+---
+
+## 📊 Reception Sequence
+
+```text
+Idle → Detect Start → Receive Data Bits → Done → Idle
+```
+
+| Phase     | RX Value             |
+| --------- | -------------------- |
+| Idle      | 1                    |
+| Start Bit | 0                    |
+| Data Bits | Incoming serial bits |
+| Stop Bit  | (Not validated)      |
+
+---
+
+## 🧩 Example Timing
+
+```text
+RX Line:
+ ─────┐     ┌─┬─┬─┬─┬─┬─┬─┬─┬─────
+      └─────┘ │ │ │ │ │ │ │ │
+      Start    D0 D1 D2 D3 D4 D5 D6 D7 Stop
+```
+
+---
+
+## ✅ Key Features
+
+* Parameterized baud rate and clock frequency
+* Simple FSM-based design
+* Serial-to-parallel conversion
+* Shift register implementation
+* Data ready flag (`done`)
