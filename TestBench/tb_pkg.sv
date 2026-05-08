@@ -1,6 +1,5 @@
 package tb_pkg;
 
-  `include "interface.sv"
   `include "transaction.sv"
   `include "generator.sv"
   `include "driver.sv"
