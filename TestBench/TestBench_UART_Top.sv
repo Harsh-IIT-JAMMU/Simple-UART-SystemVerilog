@@ -1,34 +1,44 @@
 module tb;
-    
+
+  // Create interface instance (connects TB ↔ DUT)
   uart_if vif();
-  
-  uart_top #(1000000, 9600) dut (vif.clk,vif.rst,vif.rx,vif.dintx,vif.newd,vif.tx,vif.doutrx,vif.donetx, vif.donerx);
-  
-  
-  
-    initial begin
-      vif.clk <= 0;
-    end
+  // Instantiate DUT (Design Under Test)
+  // Parameters: CLK_FREQ = 1MHz, BAUD_RATE = 9600
+  uart_top #(1000000, 9600) dut (
+    vif.clk, 
+    vif.rst,
+    vif.rx,
+    vif.dintx,
+    vif.newd,
+    vif.tx,
+    vif.doutrx,
+    vif.donetx, 
+    vif.donerx
+  );
     
-    always #10 vif.clk <= ~vif.clk;
+  // Initialize clock to 0
+  initial begin
+    vif.clk <= 0;
+  end
+  // Generate clock: toggle every 10 time units
+  always #10 vif.clk <= ~vif.clk;
+  // Declare environment (contains generator, driver, monitor, scoreboard)
+  environment env;
+
     
-    environment env;
-    
-    
-    
-    initial begin
-      env = new(vif);
-      env.gen.count = 5;
-      env.run();
-    end
-      
-    
-    initial begin
-      $dumpfile("dump.vcd");
-      $dumpvars;
-    end
-   
-  assign vif.uclktx = dut.utx.uclk;
-  assign vif.uclkrx = dut.rtx.uclk;
-    
-  endmodule
+  // Main test block
+  initial begin
+    env = new(vif);       // pass interface to environment
+    env.gen.count = 5;    // generate 5 transactions
+    env.run();            // start the testbench
+  end
+  // Dump waveform for debugging (GTKWave etc.)
+  initial begin
+    $dumpfile("dump.vcd"); // file name
+    $dumpvars;             // dump all signals
+  end
+  // Connect internal DUT clocks to interface (for driver timing)
+  assign vif.uclktx = dut.utx.uclk;  // TX clock
+  assign vif.uclkrx = dut.rtx.uclk;  // RX clock
+
+endmodule
