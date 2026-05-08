@@ -1,3 +1,5 @@
+import tb_pkg::*;
+
 module tb;
 
   // Create interface instance (connects TB ↔ DUT)
