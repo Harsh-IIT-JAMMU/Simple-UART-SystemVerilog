@@ -14,12 +14,12 @@ It uses a modular architecture with Generator, Driver, Monitor, and Scoreboard t
 
 ## 🖼️ Design Schematic
 
-![UART Schematic](schematic.png)
+![UART Schematic](Schematic.png)
 
 ---
 
 ## 📊 Simulation Output
 
-![Simulation Output](output.png)
+![Simulation Output](Output.png)
 
 ---
