@@ -77,7 +77,7 @@ module uart_tx #(
                 end
 
                 TRANSFER: begin
-                    tx <= din[counts];
+                    tx <= din[counts]; // LSB sent first on Tx Line.
 
                     if (counts < 7) begin
                         counts <= counts + 1;
