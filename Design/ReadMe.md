@@ -155,59 +155,74 @@ tx ------------------> rx
 * Easy integration into larger systems
 
 
-## UART Transmitter (SystemVerilog)
+# UART Transmitter (SystemVerilog)
 
 ## 📌 Overview
 
-UART_Tx.sv implements a **UART (Universal Asynchronous Receiver/Transmitter) Transmitter** in SystemVerilog.
+`uart_tx.sv` implements a **UART (Universal Asynchronous Receiver/Transmitter) Transmitter** in SystemVerilog.
 
-The module converts **8-bit parallel data** into a **serial bitstream** following UART protocol:
+The module converts **8-bit parallel data** into a **serial UART frame** consisting of:
 
-* 1 Start bit
-* 8 Data bits (LSB first)
-* 1 Stop bit
+- 1 Start bit
+- 8 Data bits (LSB first)
+- 1 Stop bit
 
-It also includes an internal clock divider to generate the required baud rate.
+The design also includes an internal baud-rate clock generator.
 
 ---
 
-## ⚙️ Parameters
+# ⚙️ Parameters
 
-| Parameter   | Description                  |
-| ----------- | ---------------------------- |
-| `clk_freq`  | Input system clock frequency |
-| `baud_rate` | Desired UART baud rate       |
+| Parameter | Description |
+|---|---|
+| `clk_freq` | Input system clock frequency |
+| `baud_rate` | Desired UART baud rate |
 
-### Baud Clock Calculation
+---
+
+## Baud Clock Calculation
 
 ```text
-clkcount = clk_freq / baud_rate
+ratio = clk_freq / baud_rate
 ```
 
+Example:
+
+```text
+clk_freq  = 1,000,000 Hz
+baud_rate = 9600
+
+ratio ≈ 104
+```
+
+Meaning:
+- one UART bit requires approximately 104 system clock cycles.
+
 ---
 
-## 🔌 Ports
+# 🔌 Ports
 
-| Signal         | Direction | Description                |
-| -------------- | --------- | -------------------------- |
-| `clk`          | Input     | System clock               |
-| `rst`          | Input     | Reset signal               |
-| `newd`         | Input     | New data valid signal      |
-| `tx_data[7:0]` | Input     | Parallel data to transmit  |
-| `tx`           | Output    | Serial output line         |
-| `donetx`       | Output    | Transmission complete flag |
+| Signal | Direction | Description |
+|---|---|---|
+| `clk` | Input | System clock |
+| `rst` | Input | Active-high reset |
+| `newd` | Input | New data valid signal |
+| `din_tx[7:0]` | Input | Parallel data input |
+| `tx` | Output | UART serial transmit line |
+| `done_tx` | Output | Transmission complete flag |
 
 ---
 
-## 🧠 Internal Blocks
+# 🧠 Internal Blocks
 
-### 1. UART Clock Generator
+---
 
-* Generates a slower clock (`uclk`) from system clock.
-* Each toggle represents half bit period.
+## 1. Baud Clock Generator
+
+Generates a slower UART clock (`uclk`) from the system clock.
 
 ```sv
-if(count < clkcount/2)
+if(count < (ratio/2)-1)
     count <= count + 1;
 else begin
     count <= 0;
@@ -215,118 +230,190 @@ else begin
 end
 ```
 
+### Why `(ratio/2)-1` ?
+
+- `uclk` toggles every half period
+- one full UART bit period requires:
+  - LOW → HIGH
+  - HIGH → LOW
+
+Hence division by 2.
+
+`-1` is used because counting starts from 0.
+
 ---
 
-### 2. Data Register
+## 2. Data Register
 
 ```sv
 reg [7:0] din;
 ```
 
-Stores input data when transmission begins.
+Stores input data before serial transmission begins.
 
 ---
 
-### 3. Counters
+## 3. Counters
 
-* `count` → used for baud clock generation
-* `counts` → tracks number of transmitted bits
+| Counter | Purpose |
+|---|---|
+| `count` | Baud clock generation |
+| `counts` | Tracks transmitted bit number |
 
 ---
 
-## 🔄 Finite State Machine (FSM)
+# 🔄 UART Transmitter FSM
 
-The transmitter is controlled by a **4-state FSM**:
+The transmitter is implemented using a **4-state FSM**.
 
-### States:
+---
+
+## FSM States
 
 ```sv
-idle     = 2'b00
-start    = 2'b01
-transfer = 2'b10
-done     = 2'b11
+typedef enum bit [1:0] {
+    IDLE,
+    START,
+    TRANSFER,
+    DONE
+} state_t;
 ```
 
 ---
 
-### 🟢 State: IDLE
+# 🟢 State : IDLE
 
-* TX line is HIGH (default UART idle condition)
-* Waits for `newd = 1`
-* Loads data into `din`
-* Sends **start bit (0)** and moves to transfer state
+UART line remains HIGH during idle condition.
+
+### Operations
+- `tx = 1`
+- `done_tx = 0`
+- waits for `newd`
+
+When new data arrives:
+- stores `din_tx` into `din`
+- moves to `START`
 
 ```text
 tx = 1
-donetx = 0
+done_tx = 0
+
 if(newd):
-    din = tx_data
-    tx = 0
-    → transfer
+    din = din_tx
+    → START
 ```
 
 ---
 
-### 🔵 State: TRANSFER
+# 🟡 State : START
 
-* Sends 8 data bits (LSB first)
-* Controlled using `counts`
+Transmits UART start bit.
+
+UART start bit is always:
 
 ```text
-for counts = 0 to 7:
-    tx = din[counts]
+0
 ```
 
-After all bits:
-
-* Sends stop bit (`tx = 1`)
-* Sets `donetx = 1`
-* Returns to `IDLE`
-
----
-
-### ⚠️ Note
-
-Although `start` and `done` states are defined, they are not used explicitly in the FSM. Their functionality is merged into `idle` and `transfer`.
-
----
-
-## 📊 Transmission Sequence
+### Operations
 
 ```text
-Idle → Start → Data Bits → Stop → Idle
+tx = 0
+→ TRANSFER
 ```
-
-| Phase      | TX Value |
-| ---------- | -------- |
-| Idle       | 1        |
-| Start Bit  | 0        |
-| Data Bit 0 | LSB      |
-| ...        | ...      |
-| Data Bit 7 | MSB      |
-| Stop Bit   | 1        |
 
 ---
 
-## 🧩 Example Timing
+# 🔵 State : TRANSFER
+
+Serially transmits 8 data bits.
+
+Transmission is:
+- LSB first
+- one bit per baud clock
+
+```sv
+tx <= din[counts];
+```
+
+### Bit Sequence
 
 ```text
-TX Line:
- ─────┐     ┌─┬─┬─┬─┬─┬─┬─┬─┬─────
-      └─────┘ │ │ │ │ │ │ │ │
-      Start    D0 D1 D2 D3 D4 D5 D6 D7 Stop
+counts = 0 → tx = din[0]
+counts = 1 → tx = din[1]
+...
+counts = 7 → tx = din[7]
+```
+
+After last bit:
+- counter resets
+- FSM moves to `DONE`
+
+---
+
+# 🟣 State : DONE
+
+Sends UART stop bit.
+
+UART stop bit is always:
+
+```text
+1
+```
+
+### Operations
+
+```text
+tx = 1
+done_tx = 1
+→ IDLE
 ```
 
 ---
 
-## ✅ Key Features
+# 📊 UART Transmission Sequence
 
-* Parameterized baud rate and clock frequency
-* Simple FSM-based design
-* LSB-first transmission
-* Built-in clock divider
-* Transmission complete flag (`donetx`)
+```text
+Idle → Start → D0 → D1 → D2 → D3 → D4 → D5 → D6 → D7 → Stop
+```
 
+---
+
+# 📈 UART Frame Format
+
+| Phase | TX Value |
+|---|---|
+| Idle | 1 |
+| Start Bit | 0 |
+| Data Bit 0 | LSB |
+| Data Bit 1 | |
+| ... | |
+| Data Bit 7 | MSB |
+| Stop Bit | 1 |
+
+---
+
+# 🧩 Example Timing Diagram
+
+```text
+TX Line
+
+─────┐     ┌─┬─┬─┬─┬─┬─┬─┬─┬─────
+     └─────┘ │ │ │ │ │ │ │ │
+     Start   D0 D1 D2 D3 D4 D5 D6 D7 Stop
+```
+
+---
+
+# ✅ Key Features
+
+- Parameterized baud rate
+- Parameterized clock frequency
+- FSM-based UART transmitter
+- LSB-first transmission
+- Internal baud clock generator
+- Transmission complete flag (`done_tx`)
+- Clean SystemVerilog enum-based FSM
 
 ## UART Receiver (SystemVerilog)
 
