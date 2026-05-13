@@ -8,18 +8,18 @@ parameter baud_rate = 9600
 (
   input clk,rst, 
   input rx,
-  input [7:0] dintx,
+  input [7:0] din_tx,
   input newd,
   output tx, 
   output [7:0] doutrx,
-  output donetx,
+  output done_tx,
   output donerx
     );
     
 uarttx 
 #(clk_freq, baud_rate) 
 utx   
-(clk, rst, newd, dintx, tx, donetx);   
+ (clk, rst, newd, din_tx, tx, done_tx);   
  
 uartrx 
 #(clk_freq, baud_rate)
