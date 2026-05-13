@@ -73,7 +73,6 @@ always @(posedge uclk) begin
 
         IDLE:
         begin
-            rxdata <= 8'h00;
             counts <= 0;
             done   <= 1'b0;
 
