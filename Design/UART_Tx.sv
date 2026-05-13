@@ -35,7 +35,7 @@ module uart_tx #(
             uclk  <= 0;
         end
         else begin
-            if (count < (ratio/2)-1) begin
+            if (count < (ratio/2)-1) begin // -1 because counting starts from 0.
                 count <= count + 1;
             end
             else begin
