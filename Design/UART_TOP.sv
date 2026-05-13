@@ -11,9 +11,9 @@ parameter baud_rate = 9600
   input [7:0] din_tx,
   input newd,
   output tx, 
-  output [7:0] doutrx,
+ output [7:0] rxdata,
   output done_tx,
-  output donerx
+  output done
     );
     
 uarttx 
@@ -24,7 +24,7 @@ utx
 uartrx 
 #(clk_freq, baud_rate)
 rtx
-(clk, rst, rx, donerx, doutrx);    
+ (clk, rst, rx, done, rxdata);    
     
     
 endmodule
