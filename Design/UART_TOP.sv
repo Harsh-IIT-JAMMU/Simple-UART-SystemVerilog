@@ -53,7 +53,7 @@ rtx
 (
     .clk(clk),
     .rst(rst),
-    .rx(rx),
+    .rx(rx), // For loopback testing replace rx by tx. 
     .done(done),
     .rxdata(rxdata)
 );
