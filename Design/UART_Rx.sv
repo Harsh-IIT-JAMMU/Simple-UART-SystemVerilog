@@ -21,7 +21,6 @@ reg uclk = 0;
 
 typedef enum bit [1:0] {
     IDLE,
-    START,
     RECEIVE,
     DONE
 } state_t;
@@ -78,23 +77,11 @@ always @(posedge uclk) begin
 
             // Detect start bit
             if(rx == 1'b0)
-                state <= START;
-            else
-                state <= IDLE;
-        end
-
-        //////////////////////////////////////////////////
-        //START
-        //////////////////////////////////////////////////
-
-        START:
-        begin
-            // confirm valid start bit
-            if(rx == 1'b0)
                 state <= RECEIVE;
             else
                 state <= IDLE;
         end
+
 
         //////////////////////////////////////////////////
         //RECEIVE DATA
